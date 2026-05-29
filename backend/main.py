@@ -74,7 +74,7 @@ DB_CONFIG = {
     "dbname": "ecommerce_main_db",
     "user": "postgres",
     "password": "anne2663",
-    "host": "localhost",
+    "host": "168.231.118.191",
     "port": "5432"
 }
 
@@ -82,7 +82,7 @@ REP_DB_CONFIG = {
     "dbname": "ecommerce_reporting_db",
     "user": "postgres",
     "password": "anne2663",
-    "host": "localhost",
+    "host": "168.231.118.191",
     "port": "5432"
 }
 
