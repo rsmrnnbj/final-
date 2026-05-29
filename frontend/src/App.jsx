@@ -10,7 +10,7 @@ function AnalyticsPage() {
   const [analyticsData, setAnalyticsData] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/analytics-data')
+    fetch('http://168.231.118.191:8000/api/analytics-data')
       .then(res => res.json())
       .then(data => setAnalyticsData(data))
       .catch(err => console.error("Error fetching analytics:", err));
@@ -75,7 +75,7 @@ export default function App() {
  const fetchProducts = () => {
   const timestamp = new Date().getTime();
 
-  fetch(`http://localhost:8000/products?t=${timestamp}`)
+  fetch(`http://168.231.118.191:8000/products?t=${timestamp}`)
     .then(res => res.json())
     .then(data => {
       console.log("Products received from server:", data);
@@ -103,7 +103,7 @@ export default function App() {
   window.refreshStorefront = fetchProducts;
 
   const fetchOrderHistory = () => {
-    fetch('http://localhost:8000/orders')
+    fetch('http://168.231.118.191:8000/orders')
       .then(res => res.json())
       .then(data => setOrders(Array.isArray(data) ? data : []))
       .catch(err => console.error("Could not fetch order data:", err));
@@ -132,7 +132,7 @@ export default function App() {
     if (!email || !password) return alert("Please fill out all fields!");
 
     try {
-      const res = await fetch('http://localhost:8000/auth/signup', {
+      const res = await fetch('http://168.231.118.191:8000/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role: signupRole })
@@ -152,7 +152,7 @@ export default function App() {
   const handleLoginSubmit = async (e, operationalRole) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:8000/auth/login', {
+      const res = await fetch('http://168.231.118.191:8000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role: operationalRole })
@@ -216,7 +216,7 @@ export default function App() {
     if (cart.length === 0) return;
     try {
       for (const item of cart) {
-        const response = await fetch('http://localhost:8000/buy', {
+        const response = await fetch('http://168.231.118.191:8000/buy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ product_id: item.id, quantity: item.quantity })
