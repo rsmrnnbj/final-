@@ -20,7 +20,7 @@ export default function SellerPortal({ onLogout, refreshStorefront }) {
   const [newProdImg, setNewProdImg] = useState(null);
 
   const fetchInventory = () => {
-    fetch('http://localhost:8000/api/inventory')
+    fetch('http://168.231.118.191:8000/api/inventory')
       .then(res => res.json())
       .then(data => setInventory(data))
       .catch(err => console.error("Inventory fetch error:", err));
@@ -28,7 +28,7 @@ export default function SellerPortal({ onLogout, refreshStorefront }) {
 
   useEffect(() => {
     // 1. Fetch Analytics
-    fetch('http://localhost:8000/api/analytics')
+    fetch('http://168.231.118.191:8000/api/analytics')
       .then(res => res.json())
       .then(data => setAnalyticsData({
           totalRevenue: data.total_revenue || 0,
@@ -41,7 +41,7 @@ export default function SellerPortal({ onLogout, refreshStorefront }) {
     fetchInventory();
 
     // 3. Fetch Orders
-    fetch('http://localhost:8000/api/orders')
+    fetch('http://168.231.118.191:8000/api/orders')
       .then(res => res.json())
       .then(data => setOrders(data))
       .catch(err => console.error("Orders fetch error:", err));
@@ -207,13 +207,13 @@ export default function SellerPortal({ onLogout, refreshStorefront }) {
                     stock: 10
                   };
                   
-                  const url = editingProduct ? `http://localhost:8000/api/products/${editingProduct.id}` : 'http://localhost:8000/api/products';
+                  const url = editingProduct ? `http://168.231.118.191:8000/api/products/${editingProduct.id}` : 'http://168.231.118.191:8000/api/products';
                   const method = editingProduct ? 'PUT' : 'POST';
                   
                   fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
                     .then(() => { 
                       fetchInventory(); 
-                      return fetch('http://localhost:8000/api/trigger-etl', { method: 'POST' });
+                      return fetch('http://168.231.118.191:8000/api/trigger-etl', { method: 'POST' });
                     })
                     .then(() => {
                       console.log("Database synced to Storefront!");
