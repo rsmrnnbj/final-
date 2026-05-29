@@ -19,7 +19,7 @@ export default function Analytics() {
   const [data, setData] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/analytics')
+    fetch('http://168.231.118.191:8000/api/analytics')
       .then(res => res.json())
       .then(json => {
         setData({
@@ -35,7 +35,7 @@ export default function Analytics() {
   }, []);
 
   const handleManualSync = () => {
-    fetch('http://localhost:8000/api/trigger-etl', { method: 'POST' })
+    fetch('http://168.231.118.191:8000/api/trigger-etl', { method: 'POST' })
       .then(() => {
         alert("Sync complete! The page will refresh now.");
         window.location.reload(); 
