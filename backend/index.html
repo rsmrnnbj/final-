@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Simple Test Storefront</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; background-color: #f4f6f9; color: #333; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #dbdfdf; padding-bottom: 10px; }
+        .product-grid { display: flex; gap: 20px; margin-top: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; width: 220px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border: 1px solid #e1e8ed; }
+        .price { color: #2ecc71; font-weight: bold; font-size: 1.2em; margin: 10px 0; }
+        .stock { font-size: 0.9em; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <h1>🛒 Local Test Storefront</h1>
+    <p>This is a temporary frontend reading live data from your PC's database!</p>
+
+    <div class="product-grid" id="products-container">Loading items from database...</div>
+
+    <script>
+        // Fetch data from your live FastAPI backend server
+        fetch('http://127.0.0.1:8000/products')
+            .then(response => response.json())
+            .then(data => {
+                const container = document.getElementById('products-container');
+                container.innerHTML = ''; // Clear out the loading text
+
+                // Loop through each product item inside your PostgreSQL table
+                data.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <h3>${product.name}</h3>
+                        <p class="price">$${product.price}</p>
+                        <p class="stock">📦 Stock: ${product.stock} units</p>
+                    `;
+                    container.appendChild(card);
+                });
+            })
+            .catch(error => {
+                document.getElementById('products-container').innerHTML = 
+                    `<p style="color: red;">Could not connect to API. Is your Uvicorn server running?</p>`;
+            });
+    </script>
+</body>
+</html>
