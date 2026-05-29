@@ -21,8 +21,8 @@ export default function ProductGrid({ products, addToCart, favorites = [], toggl
             {/* Visual Container Frame */}
             <div className="card-image-box">
               <img 
-  // ADD THE http://localhost:8000/static/ BEFORE product.image_url
-  src={`http://localhost:8000/static/${product.image_url}`} 
+ 
+  src={`http://168.231.118.191:8000/static/${product.image_url}`} 
   alt={product.name} 
   onError={(e) => {
     e.target.onerror = null;
