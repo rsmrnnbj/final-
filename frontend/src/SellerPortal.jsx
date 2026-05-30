@@ -7,7 +7,6 @@ export default function SellerPortal({ onLogout, refreshStorefront }) {
   const [activePage, setActivePage] = useState('Dashboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // --- FIX: Field names now match what /api/analytics actually returns (camelCase) ---
   const [analyticsData, setAnalyticsData] = useState({
     totalRevenue: 0,
     activeOrders: 0,
@@ -32,22 +31,21 @@ export default function SellerPortal({ onLogout, refreshStorefront }) {
   };
 
   useEffect(() => {
-    // 1. Fetch Analytics — API returns camelCase: totalRevenue, activeOrders, totalItemsSold
+    // FIX: API returns snake_case — total_revenue, total_orders, total_items_sold, total_users
     fetch('http://168.231.118.191:8000/api/analytics')
       .then(res => res.json())
       .then(data => {
+        console.log("Dashboard analytics raw:", data); // debug helper
         setAnalyticsData({
-          totalRevenue:   data.totalRevenue   || 0,
-          activeOrders:   data.activeOrders   || 0,
-          totalItemsSold: data.totalItemsSold || 0,
+          totalRevenue:   Number(data.total_revenue)    || 0,
+          activeOrders:   Number(data.total_orders)     || 0,
+          totalItemsSold: Number(data.total_items_sold) || 0,
         });
       })
       .catch(err => console.error("Analytics fetch error:", err));
 
-    // 2. Fetch Inventory
     fetchInventory();
 
-    // 3. Fetch Orders
     fetch('http://168.231.118.191:8000/api/orders')
       .then(res => res.json())
       .then(data => setOrders(data))
@@ -78,18 +76,17 @@ export default function SellerPortal({ onLogout, refreshStorefront }) {
 
         {activePage === 'Dashboard' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-            {/* --- FIX: Now correctly reads camelCase fields --- */}
             <div style={cardStyle}>
-              <h3>Total Revenue</h3>
+              <h3 style={cardLabelStyle}>Total Revenue</h3>
               <p style={valStyle}>₱{Number(analyticsData.totalRevenue).toLocaleString()}</p>
             </div>
             <div style={cardStyle}>
-              <h3>Total Orders</h3>
-              <p style={valStyle}>{analyticsData.activeOrders}</p>
+              <h3 style={cardLabelStyle}>Total Orders</h3>
+              <p style={valStyle}>{analyticsData.activeOrders.toLocaleString()}</p>
             </div>
             <div style={cardStyle}>
-              <h3>Items Sold</h3>
-              <p style={valStyle}>{analyticsData.totalItemsSold}</p>
+              <h3 style={cardLabelStyle}>Items Sold</h3>
+              <p style={valStyle}>{analyticsData.totalItemsSold.toLocaleString()}</p>
             </div>
           </div>
         )}
@@ -248,6 +245,7 @@ const menuStyle = (isActive) => ({
 });
 const logoutButtonStyle = { marginTop: 'auto', background: 'transparent', border: '1px solid #f3c1c1', color: '#f3c1c1', padding: '10px', cursor: 'pointer', borderRadius: '5px', width: '80%' };
 const cardStyle = { background: '#fff', padding: '30px', borderRadius: '15px', border: '1px solid #e0e0e0', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' };
+const cardLabelStyle = { margin: 0, fontSize: '0.85rem', color: '#888', fontWeight: '600', textTransform: 'uppercase' };
 const valStyle = { fontSize: '1.8rem', fontWeight: 'bold', margin: '10px 0 0 0', color: '#2d2d2d' };
 const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 };
 const modalContentStyle = { background: '#fff', padding: '40px', borderRadius: '15px', width: '500px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' };
