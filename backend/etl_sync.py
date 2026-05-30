@@ -2,7 +2,6 @@ import psycopg2
 import json
 from datetime import datetime
 
-# Connection for the main transactional database (Source)
 MAIN_DB_CONFIG = {
     "dbname": "ecommerce_main_db",
     "user": "rose",
@@ -11,7 +10,6 @@ MAIN_DB_CONFIG = {
     "port": "5432"
 }
 
-# Connection for the reporting analytics database (Destination)
 REPORTING_DB_CONFIG = {
     "dbname": "ecommerce_reporting_db",
     "user": "rose",
@@ -26,25 +24,21 @@ def run_analytics_etl():
     try:
         print(f"[{datetime.now()}] Starting ETL Sync...")
 
-        # 1. Connect to Main DB and EXTRACT data
         main_conn = psycopg2.connect(**MAIN_DB_CONFIG)
         main_cur = main_conn.cursor()
 
-        # --- FIX 1: Calculate general order stats ---
-        # Added SUM(quantity) for total_items_sold
-        # COUNT(DISTINCT user_id) will work as long as user_id column exists in orders
         main_cur.execute("""
             SELECT 
                 COALESCE(SUM(total_statement), 0)   AS total_revenue,
                 COUNT(id)                            AS total_orders,
-                COALESCE(SUM(quantity), 0)           AS total_items_sold,
-                COUNT(DISTINCT user_id)              AS total_users
+                COALESCE(SUM(quantity), 0)           AS total_items_sold
             FROM orders;
         """)
         stats = main_cur.fetchone()
-        # stats = (total_revenue, total_orders, total_items_sold, total_users)
+        
+        main_cur.execute("SELECT COUNT(id) FROM users;")
+        user_count = main_cur.fetchone()[0]
 
-        # --- FIX 2: Top 3 Products by total quantity sold (more meaningful) ---
         main_cur.execute("""
             SELECT product_name
             FROM orders
@@ -57,11 +51,9 @@ def run_analytics_etl():
         main_cur.close()
         main_conn.close()
 
-        # 2. Connect to Reporting DB and LOAD data
         reporting_conn = psycopg2.connect(**REPORTING_DB_CONFIG)
         reporting_cur = reporting_conn.cursor()
 
-        # --- FIX 3: Now correctly inserts total_items_sold ---
         reporting_cur.execute("""
             INSERT INTO daily_analytics_summary 
             (summary_date, total_revenue, total_orders, total_items_sold, top_products, total_users, last_updated)
@@ -76,17 +68,17 @@ def run_analytics_etl():
                 last_updated     = EXCLUDED.last_updated;
         """, (
             datetime.now().date(),
-            stats[0],   # total_revenue
-            stats[1],   # total_orders
-            stats[2],   # total_items_sold  <-- was missing before
+            stats[0],   
+            stats[1],  
+            stats[2],  
             json.dumps(top_products),
-            stats[3],   # total_users
+            user_count,
             datetime.now()
         ))
 
         reporting_conn.commit()
         print(f"[{datetime.now()}] ETL Sync successfully completed.")
-        print(f"  Revenue: {stats[0]}, Orders: {stats[1]}, Items Sold: {stats[2]}, Users: {stats[3]}")
+        print(f"  Revenue: {stats[0]}, Orders: {stats[1]}, Items Sold: {stats[2]}, Users: {user_count}")
         print(f"  Top Products: {top_products}")
 
         reporting_cur.close()
@@ -98,7 +90,7 @@ def run_analytics_etl():
             main_conn.close()
         if reporting_conn and not reporting_conn.closed:
             reporting_conn.close()
-        raise  # Re-raise so FastAPI endpoint can report the error
+        raise
 
 if __name__ == "__main__":
     run_analytics_etl()
