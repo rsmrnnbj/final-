@@ -14,13 +14,11 @@ from etl_sync import run_analytics_etl
 
 app = FastAPI(title="E-Commerce API Engine")
 
-# Mount static files
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(static_dir, exist_ok=True)
 os.makedirs(os.path.join(static_dir, "images"), exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,7 +27,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# DB configs
 DB_CONFIG = {
     "dbname": "ecommerce_main_db",
     "user": "rose",
@@ -74,7 +71,6 @@ def init_db():
             );
         """)
 
-        # --- FIX: orders table now includes user_id so ETL COUNT(DISTINCT user_id) works ---
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -104,7 +100,7 @@ init_db()
 class OrderCreate(BaseModel):
     product_id: int
     quantity: int
-    user_id: int = None  # Optional; pass if you have logged-in user context
+    user_id: int = None 
 
 class UserSignUp(BaseModel):
     email: str
@@ -381,3 +377,5 @@ def trigger_etl():
 async def process_order(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_analytics_etl)
     return {"message": "Order processed! ETL running in background."}
+
+
