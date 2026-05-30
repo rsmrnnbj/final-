@@ -29,8 +29,6 @@ export default function Analytics() {
         return res.json();
       })
       .then(json => {
-        // --- FIX: API returns camelCase, map it correctly ---
-        // The /api/analytics endpoint returns: totalRevenue, activeOrders, top_products, total_users
         let parsedTopProducts = [];
         if (Array.isArray(json.top_products)) {
           parsedTopProducts = json.top_products;
@@ -43,11 +41,22 @@ export default function Analytics() {
         }
 
         setData({
-          totalRevenue:    Number(json.totalRevenue)   || 0,
-          activeOrders:    Number(json.activeOrders)   || 0,
-          totalItemsSold:  Number(json.totalItemsSold) || 0,
-          total_users:     Number(json.total_users)    || 0,
-          top_products:    parsedTopProducts,
+          totalRevenue:   Number(json.total_revenue)    || 0,
+          activeOrders:   Number(json.total_orders)     || 0,
+          totalItemsSold: Number(json.total_items_sold) || 0,
+          top_products:   parsedTopProducts,
+          revenueTrend:   json.revenueTrend || [
+            { day: 'Mon', revenue: 0 }, { day: 'Tue', revenue: 0 },
+            { day: 'Wed', revenue: 0 }, { day: 'Thu', revenue: 0 },
+            { day: 'Fri', revenue: 0 }, { day: 'Sat', revenue: 0 },
+            { day: 'Sun', revenue: 0 }
+          ],
+          orderTrend: json.orderTrend || [
+            { day: 'Mon', orders: 0 }, { day: 'Tue', orders: 0 },
+            { day: 'Wed', orders: 0 }, { day: 'Thu', orders: 0 },
+            { day: 'Fri', orders: 0 }, { day: 'Sat', orders: 0 },
+            { day: 'Sun', orders: 0 }
+          ],
         });
         setLoading(false);
       })
@@ -70,7 +79,7 @@ export default function Analytics() {
       })
       .then(() => {
         alert("Sync complete! Refreshing analytics...");
-        fetchAnalytics(); // Refresh data without full page reload
+        fetchAnalytics();
       })
       .catch(err => {
         console.error("Sync error:", err);
@@ -78,91 +87,133 @@ export default function Analytics() {
       });
   };
 
-  // Bar chart data — Revenue vs Orders side by side
-  const barChartData = data ? [
+  const revenueChartData = data ? [
     { name: 'Revenue (₱)', value: data.totalRevenue },
-    { name: 'Orders',       value: data.activeOrders },
-    { name: 'Items Sold',   value: data.totalItemsSold },
-    { name: 'Users',        value: data.total_users },
   ] : [];
 
-  // Pie chart data — top products
+  const countsChartData = data ? [
+    { name: 'Orders',     value: data.activeOrders },
+    { name: 'Items Sold', value: data.totalItemsSold },
+  ] : [];
+
   const COLORS = ['#f3c1c1', '#f9a8d4', '#fcd34d', '#86efac', '#93c5fd'];
   const pieData = data?.top_products?.map((name, i) => ({ name, value: i + 1 })) || [];
 
   return (
-    <div style={{ background: '#fff', padding: '30px', borderRadius: '15px', border: '1px solid #e0e0e0' }}>
+    <div style={styles.wrapper}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-        <h3 style={{ margin: 0 }}>Sales Intelligence Overview</h3>
-        <button
-          onClick={handleManualSync}
-          style={{ padding: '10px 20px', background: '#f3c1c1', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: '600' }}
-        >
+      {/* HEADER */}
+      <div style={styles.header}>
+        <div>
+          <h2 style={styles.title}>Sales Analytics Dashboard</h2>
+          <p style={styles.subtitle}>Real-time sales intelligence overview</p>
+        </div>
+        <button onClick={handleManualSync} style={styles.syncBtn}>
           🔄 Manual Sync
         </button>
       </div>
 
-      {/* Error banner */}
+      {/* ERROR BANNER */}
       {error && (
-        <div style={{ background: '#fff0f0', border: '1px solid #f3c1c1', borderRadius: '8px', padding: '12px', marginBottom: '20px', color: '#c0392b' }}>
+        <div style={styles.errorBanner}>
           ⚠️ Could not load analytics: {error}. Try clicking Manual Sync to populate the reporting DB.
         </div>
       )}
 
       {loading ? (
-        <p style={{ color: '#aaa', textAlign: 'center', padding: '40px 0' }}>Loading analytics data...</p>
+        <p style={{ color: '#aaa', textAlign: 'center', padding: '60px 0' }}>Loading analytics data...</p>
       ) : (
         <>
-          {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px', marginBottom: '30px' }}>
-            <div style={kpiCard}>
-              <p style={kpiLabel}>Total Revenue</p>
-              <p style={kpiValue}>₱{data.totalRevenue.toLocaleString()}</p>
+          {/* KPI CARDS — 3 columns only */}
+          <div style={styles.kpiGrid}>
+            <div style={styles.kpiCard}>
+              <p style={styles.kpiLabel}>Total Revenue</p>
+              <p style={styles.kpiValue}>₱{data.totalRevenue.toLocaleString()}</p>
             </div>
-            <div style={kpiCard}>
-              <p style={kpiLabel}>Total Orders</p>
-              <p style={kpiValue}>{data.activeOrders.toLocaleString()}</p>
+            <div style={styles.kpiCard}>
+              <p style={styles.kpiLabel}>Total Orders</p>
+              <p style={styles.kpiValue}>{data.activeOrders.toLocaleString()}</p>
             </div>
-            <div style={kpiCard}>
-              <p style={kpiLabel}>Items Sold</p>
-              <p style={kpiValue}>{data.totalItemsSold.toLocaleString()}</p>
-            </div>
-            <div style={kpiCard}>
-              <p style={kpiLabel}>Registered Users</p>
-              <p style={kpiValue}>{data.total_users.toLocaleString()}</p>
+            <div style={styles.kpiCard}>
+              <p style={styles.kpiLabel}>Items Sold</p>
+              <p style={styles.kpiValue}>{data.totalItemsSold.toLocaleString()}</p>
             </div>
           </div>
 
-          {/* Charts Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-
-            {/* Bar Chart */}
-            <div>
-              <h4 style={{ marginBottom: '10px', color: '#555' }}>Key Metrics Overview</h4>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={barChartData}>
+          {/* CHARTS ROW 1 */}
+          <div style={styles.chartGrid2}>
+            <div style={styles.chartBox}>
+              <h4 style={styles.chartTitle}>Total Revenue (₱)</h4>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={revenueChartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis />
-                  <Tooltip formatter={(val) => val.toLocaleString()} />
-                  <Bar dataKey="value" fill="#f3c1c1" radius={[4, 4, 0, 0]} />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tickFormatter={v => `₱${v.toLocaleString()}`} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={val => [`₱${val.toLocaleString()}`, 'Revenue']} />
+                  <Bar dataKey="value" fill="#f3c1c1" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            {/* Pie Chart — Top Products */}
-            <div>
-              <h4 style={{ marginBottom: '10px', color: '#555' }}>Top Products (by sales volume)</h4>
+            <div style={styles.chartBox}>
+              <h4 style={styles.chartTitle}>Orders & Items Sold</h4>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={countsChartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(val, name) => [val.toLocaleString(), name]} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                    {countsChartData.map((_, i) => (
+                      <Cell key={i} fill={['#f9a8d4', '#fcd34d'][i % 2]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* CHARTS ROW 2 */}
+          <div style={styles.chartGrid2}>
+            <div style={styles.chartBox}>
+              <h4 style={styles.chartTitle}>Weekly Revenue Trend</h4>
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={data.revenueTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" />
+                  <YAxis tickFormatter={v => `₱${v.toLocaleString()}`} tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={val => [`₱${val.toLocaleString()}`, 'Revenue']} />
+                  <Line type="monotone" dataKey="revenue" stroke="#f3c1c1" strokeWidth={3} dot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={styles.chartBox}>
+              <h4 style={styles.chartTitle}>Weekly Order Volume</h4>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={data.orderTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="day" />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="orders" fill="#f9a8d4" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* CHARTS ROW 3 */}
+          <div style={styles.chartGrid2}>
+            <div style={styles.chartBox}>
+              <h4 style={styles.chartTitle}>Top Products (by sales volume)</h4>
               {pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
                     <Pie
                       data={pieData}
                       cx="50%"
                       cy="50%"
-                      outerRadius={90}
+                      outerRadius={100}
                       dataKey="value"
                       label={({ name }) => name}
                       labelLine={false}
@@ -176,50 +227,146 @@ export default function Analytics() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div style={{ height: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', border: '1px dashed #ddd', borderRadius: '8px' }}>
+                <div style={styles.emptyPie}>
                   No order data yet — place orders to see top products.
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Top Products List */}
-          {data.top_products.length > 0 && (
-            <div style={{ marginTop: '25px', background: '#fff8f8', borderRadius: '10px', padding: '20px' }}>
-              <h4 style={{ margin: '0 0 12px 0', color: '#555' }}>🏆 Top Selling Products</h4>
-              {data.top_products.map((product, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', borderBottom: i < data.top_products.length - 1 ? '1px solid #f0e0e0' : 'none' }}>
-                  <span style={{ background: '#f3c1c1', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                    {i + 1}
-                  </span>
-                  <span style={{ fontWeight: '500' }}>{product}</span>
+            <div style={styles.chartBox}>
+              <h4 style={styles.chartTitle}>🏆 Top Selling Products</h4>
+              {data.top_products.length > 0 ? (
+                <div style={{ marginTop: '10px' }}>
+                  {data.top_products.map((product, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '10px 0',
+                      borderBottom: i < data.top_products.length - 1 ? '1px solid #f0e0e0' : 'none'
+                    }}>
+                      <span style={styles.rankBadge}>{i + 1}</span>
+                      <span style={{ fontWeight: '500', color: '#2d2d2d' }}>{product}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <p style={{ color: '#aaa', marginTop: '20px' }}>No products data yet.</p>
+              )}
             </div>
-          )}
+          </div>
         </>
       )}
     </div>
   );
 }
 
-const kpiCard = {
-  background: '#fff8f8',
-  borderRadius: '10px',
-  padding: '18px 20px',
-  border: '1px solid #f3c1c1',
-};
-const kpiLabel = {
-  margin: 0,
-  fontSize: '0.75rem',
-  color: '#888',
-  textTransform: 'uppercase',
-  fontWeight: '600',
-  letterSpacing: '0.05em',
-};
-const kpiValue = {
-  margin: '6px 0 0 0',
-  fontSize: '1.6rem',
-  fontWeight: 'bold',
-  color: '#2d2d2d',
+const styles = {
+  wrapper: {
+    background: '#ffffff',
+    padding: '35px',
+    borderRadius: '20px',
+    border: '1px solid #e5e5e5',
+    minHeight: '100vh',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '30px',
+  },
+  title: {
+    margin: 0,
+    fontSize: '1.8rem',
+    color: '#2d2d2d',
+    fontWeight: '700',
+  },
+  subtitle: {
+    margin: '4px 0 0 0',
+    color: '#999',
+    fontSize: '0.9rem',
+  },
+  syncBtn: {
+    padding: '11px 22px',
+    background: '#f3c1c1',
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '0.9rem',
+  },
+  errorBanner: {
+    background: '#fff0f0',
+    border: '1px solid #f3c1c1',
+    borderRadius: '8px',
+    padding: '12px',
+    marginBottom: '20px',
+    color: '#c0392b',
+  },
+  kpiGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '16px',
+    marginBottom: '28px',
+  },
+  kpiCard: {
+    background: '#fff8f8',
+    borderRadius: '14px',
+    padding: '20px',
+    border: '1px solid #f3c1c1',
+  },
+  kpiLabel: {
+    margin: 0,
+    fontSize: '0.72rem',
+    color: '#888',
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    letterSpacing: '0.05em',
+  },
+  kpiValue: {
+    margin: '8px 0 0 0',
+    fontSize: '1.7rem',
+    fontWeight: 'bold',
+    color: '#2d2d2d',
+  },
+  chartGrid2: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '22px',
+    marginBottom: '22px',
+  },
+  chartBox: {
+    background: '#fafafa',
+    borderRadius: '16px',
+    padding: '22px',
+    border: '1px solid #eeeeee',
+  },
+  chartTitle: {
+    margin: '0 0 12px 0',
+    color: '#555',
+    fontSize: '0.95rem',
+    fontWeight: '600',
+  },
+  emptyPie: {
+    height: 260,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#aaa',
+    border: '1px dashed #ddd',
+    borderRadius: '8px',
+    fontSize: '0.9rem',
+    textAlign: 'center',
+    padding: '20px',
+  },
+  rankBadge: {
+    background: '#f3c1c1',
+    borderRadius: '50%',
+    width: '28px',
+    height: '28px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    fontSize: '0.85rem',
+    flexShrink: 0,
+  },
 };
